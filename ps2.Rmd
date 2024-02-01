@@ -1,18 +1,21 @@
 ---
 title: "Problem Set 2"
-author: Due 31 January
-output: 
-  pdf_document:
-    includes:
-      in_header: header.tex
+author: "Due 31 January"
+output:
+  pdf_document: default
+  word_document: default
 fontsize: 12pt
 ---
 
 ```{r setup, include=FALSE}
   knitr::opts_chunk$set(
     echo = TRUE, 
-    eval = FALSE
+    eval = TRUE
   )
+```
+```{r}
+library(knitr)
+library(ggplot2)
 ```
 
 Answer the questions below to the best of your ability. Write clearly, and format your tables and visuals appropriately. You must use `R Markdown` to compose and compile your work. For full credit, `echo` all code chunks, and include your `setup` chunk. Submit your work in hard copy at the beginning of class. 
@@ -24,42 +27,160 @@ You need the [Global Greenspace Indicator Data](https://dataverse.harvard.edu/da
 2. The script below doesn't work. Type the corrected code chunk into your problem set. Annotate any line you correct to note your fix (i.e. `# unbalanced parentheses`). *There are more than five errors.*
 
 ```{r}
-  library(tidyverse)
+df = readr::read_csv('greenspace_data_share.csv')
+```
+```{r}
+library(tidyverse)
 
 # open my data
-  gspace = read_csv(greenspace_data_share.csv)
-
+ gspace = read_csv("greenspace_data_share.csv") #1 Changed read_csv to read.csv. A valid function
+  
 # summarize average urban greenspace by region
   table = 
     gspace |>
-    group_by(Major_Geo_Region)
+    group_by(Major_Geo_Region) |> #2 Added pipe function
     summarise(
-      obs = n()
-      avg = mean(annual_avg2020),
-      weighted avg = mean(annual_weight_avg_2020)
+      obs = n(), #3 Added in a comma 
+      avg = mean(annual_avg_2020), #4 Corrected annual_avg_2020 variable name
+      weightedavg = mean(annual_weight_avg_2020) #5 Combined weighted and avg text
     )
-
+  
 # output as table
-  kable(gspace, digits = 1)
+
+knitr::kable(table, format = "markdown")
+#6 Corrected data frame from gspace to table
+#7 Updated argument from digits to format
+#8 Added in knitr 
 ```
 
 3. How many urban areas does the greenspace data cover?
+ 
+  #There are 1038 urban areas
 
 4. In a couple of sentences and with reference to a well-formatted tabulation, describe the greenspace classification scores for urban areas in 2021.
+
+```{r}
+ table2= 
+    gspace |>
+    group_by(indicator_2021) |> 
+    summarise(
+      obs = n(), 
+      avg = mean(annual_avg_2021), 
+      weightedavg = mean(annual_weight_avg_2021) 
+    )
+  
+knitr::kable(table2, format = "markdown")
+```
+- 6 Classifications of NDVI (vegetation coverage), from Exceptionally Low to Very High.
+- 73% of urban areas have low vegetation coverage (Exceptionally low, Very low, and Low).
+- Only 6% of urban areas have High or Very High coverage.
+- Exceptionally low urban areas have an average of 13% coverage during the year. 
+- On the other hand, 42% of High urban areas have coverage. Marking a 29% difference.
+- There is only one city with Very High coverage which is Kandy in Sri Lanka. This city is heavily forested in an agricultural region and is a UNESCO protected site, all leading to its exceptional score.
+
 
 5. Report the number of urban areas that satisfy the conditions below. Either write your code inline or echo the code that generated the answer.   
 
     a. Scored `High` or above for greenspace in 2015.  
+
+```{r}
+  filter(gspace, indicator_2015 == "High" |  indicator_2015 == "Very High") |>
+    summarise(
+      obs = n())
+  
+  count(gspace,indicator_2015)
+```  
+  #There are 66 urban areas  
+  
     
     b. Scored `Exceptionally Low` at any point in the years covered.  
-
+  
+```{r} 
+filter(gspace, indicator_2010 == "Exceptionally Low" |  indicator_2015 == "Exceptionally Low" |             indicator_2020 == "Exceptionally Low" | indicator_2021 == "Exceptionally Low") |>
+    summarise(
+      obs = n())
+```
+  #There are 240 urban areas scored as Exceptionally Low from 2010, 2015, 2020, and 2021.
+  
     c. Urban areas in arid climate that became greener (as measured by annual weighted average) from 2010 to 2020. 
+```{r}  
+gspace <- transform(gspace,
+  greener = annual_weight_avg_2020 - annual_weight_avg_2010
+  )    
+  
+filter(gspace, Climate_region == "Arid" , greener > 0) |>
+    summarise(
+      obs = n())
+```
+  #225 urban areas became greener from 2010 to 2020.
 
 6. How many urban areas became less green (measured by annual average) from 2010 to 2021? Were these changes concentrated in a particular geographic or climate region? Explain (with evidence, of course).
 
+```{r}
+gspace <- transform(gspace,
+  greener2 = annual_avg_2021 - annual_avg_2010
+  )    
+  
+filter(gspace, greener2 < 0) |>
+    summarise(
+      obs = n())
+```
+
+```{r}
+table4= 
+    gspace |>
+    group_by(Major_Geo_Region) |> 
+    filter(greener2 < 0) |>
+    summarise(
+      obs = n())
+```
+```{r}
+table5= 
+    gspace |>
+    group_by(Climate_region) |> 
+    filter(greener2 < 0) |>
+    summarise(
+      obs = n())
+```
+      
+#6A 128 urban areas became less green from 2010 to 2021
+#6B The changes are in Europe and termperate regions as seen in the tables. 
+
 7. Present a histogram showing the change in greenspace (annual average) from 2010 to 2021. Note that you will need to create a new variable equal to this difference.  
+```{r}
+hist(gspace$greener2, 
+     main = "Change in greener2 from 2010 to 2021",
+     xlab = "Change in greener2",
+     ylab = "Frequency",
+     col = "red",border = 'green')
+```
 
 8. Present a scatter plot of population weighted greenspace in 2021 over the greenspace in 2010. 
+```{r}
+ggplot(df, aes(x = annual_weight_avg_2010, y = annual_weight_avg_2021)) +
+geom_point () +
+labs(
+    x = 'Annual Weight Average 2010',
+    y = 'Annual Weight Average 2021'
+  )  
+```
 
+```{r}
+df$slope <- (df$annual_weight_avg_2021 - df$annual_weight_avg_2010) / df$annual_weight_avg_2010
+
+ggplot(df, aes(
+      x = annual_weight_avg_2010,
+      y = annual_weight_avg_2021)
+      ) + 
+  geom_point(aes
+              (color = ifelse(slope > 0,'Moregreenspace',
+                ifelse(slope < 0, 'Lessgreenspace', 'same')))) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dotted", color = "pink") +
+  labs(title = 'Scatter Plot', 
+    x = 'Annual Weighted Average 2010',
+    y = 'Annual Weighted Average 2021')+
+  scale_color_manual(values = c('same' = "blue",'Lessgreenspace'= "green",
+                      'Moregreenspace'='red'), name = 'Legend')
+```
+                      
 **BONUS OPPORTUNITY**: Use color-coding to differentiate urban areas that added versus lost greenspace in that time. Then include a 45-degree line to further highlight the change.
-
