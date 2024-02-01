@@ -29,6 +29,7 @@ You need the [Global Greenspace Indicator Data](https://dataverse.harvard.edu/da
 ```{r}
 df = readr::read_csv('greenspace_data_share.csv')
 ```
+
 ```{r}
 library(tidyverse)
 
